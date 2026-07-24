@@ -28,11 +28,17 @@ Expected total: **$15–30**.
 ## Sequence
 
 ### Session 1 — data
-- [ ] Download one tier of xBD to the volume (`train`, not all of it)
+- [ ] Download the challenge **train** set only (~8 GB). Not tier3, not the
+      GeoTIFF release.
 - [ ] `parse_annotations.py` → labels.csv; sanity-check the grade distribution
       against the ~80% no-damage expectation
-- [ ] `build_chips.py --pre`; eyeball 20 chips before trusting any of them
+- [ ] **Read the per-event table it prints.** That is the empirical answer to
+      whether tier3 is needed: if the train set alone covers too few event
+      types, cross-event splitting has nothing to hold out, and tier3 becomes
+      worth its 17 GB. Decide from the table, not from a guess.
 - [ ] `split.py`; **resolve every coverage warning** before continuing
+- [ ] `build_chips.py --pre` (after split — it chips only the sampled subset);
+      eyeball 20 chips before trusting any of them
 
 ### Session 2 — evaluation harness and baseline
 - [ ] `build_dataset.py` (post-only, `--tag post`)

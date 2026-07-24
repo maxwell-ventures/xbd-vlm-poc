@@ -51,10 +51,16 @@ python scripts/download_xbd.py        # creates configs/xbd_urls.txt on first ru
 python scripts/download_xbd.py --dest data/raw
 
 python scripts/parse_annotations.py --raw data/raw --out data/labels.csv
-python scripts/build_chips.py --labels data/labels.csv --chips data/chips --pre
 python scripts/split.py --labels data/labels.csv --out configs/split.json
+python scripts/build_chips.py --chips data/chips --pre --per-class 1500
 python scripts/build_dataset.py --per-class 1500 --out data/processed
 ```
+
+Split runs **before** chipping: xBD has ~850k polygons and this project uses a
+few thousand, so `build_chips.py` crops only the sampled subset. Selection is a
+deterministic hash of the uid, so `build_dataset.py` independently arrives at
+exactly the same rows. Keep the `--per-class` values in step between the two
+(raising the cap later is purely additive — existing chips stay valid).
 
 On the GPU box:
 

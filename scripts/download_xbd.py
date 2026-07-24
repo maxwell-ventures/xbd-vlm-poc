@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -67,6 +68,66 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: f.read(1 << 20), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def url_filename(url: str) -> str:
+    return url.split("?")[0].rsplit("/", 1)[-1] or "xbd_archive.tar.gz"
+
+
+_PART_RE = re.compile(r"^(?P<base>.+?)\.part-[a-z]{2,}$", re.I)
+
+
+def plan(urls: list[str]) -> list[tuple[str, list[str]]]:
+    """Group URLs into download jobs, joining multipart archives.
+
+    xView2 serves the full GeoTIFF release as `name.tgz.part-aa`, `.part-ab`,
+    ... Those are raw byte slices, not independent archives: they must be
+    concatenated in order before anything can read them.
+    """
+    jobs: dict[str, list[str]] = {}
+    for url in urls:
+        name = url_filename(url)
+        m = _PART_RE.match(name)
+        key = m.group("base") if m else name
+        jobs.setdefault(key, []).append(url)
+    for key in jobs:
+        jobs[key].sort(key=url_filename)
+    return list(jobs.items())
+
+
+def preflight(jobs: list[tuple[str, list[str]]], allow_geotiff: bool) -> None:
+    """Catch the wrong-dataset mistake before gigabytes move.
+
+    The GeoTIFF release and the challenge release are both prominent on the
+    download page, and only the challenge one matches this pipeline: PNG tiles
+    in <source>/images with GeoJSON in <source>/labels. GeoTIFF needs
+    rasterio/GDAL to read, which build_chips.py does not use.
+    """
+    geotiff = [name for name, _ in jobs if "geotiff" in name.lower()]
+    if geotiff and not allow_geotiff:
+        raise SystemExit(
+            "\nThese look like the full GeoTIFF release:\n"
+            + "".join(f"  {n}\n" for n in geotiff)
+            + "\nThis pipeline expects the CHALLENGE (PNG) downloads instead —\n"
+            "  train_images_labels_targets.tar.gz  (and test / hold / tier3)\n"
+            "which extract to <source>/images/*.png + <source>/labels/*.json.\n\n"
+            "GeoTIFF would need rasterio/GDAL in build_chips.py, is much larger,\n"
+            "and has a different directory layout.\n\n"
+            "Re-copy the challenge links into configs/xbd_urls.txt, or pass\n"
+            "--allow-geotiff if you really mean it."
+        )
+
+
+def join_parts(parts: list[Path], target: Path) -> Path:
+    """Concatenate multipart downloads in lexical order."""
+    print(f"    joining {len(parts)} parts -> {target.name}")
+    with target.open("wb") as out:
+        for part in parts:
+            with part.open("rb") as f:
+                shutil.copyfileobj(f, out, length=1 << 22)
+    for part in parts:
+        part.unlink()
+    return target
 
 
 def download(url: str, dest_dir: Path) -> Path:
@@ -140,6 +201,11 @@ def main() -> int:
         help="keep the tarballs after extraction (needs ~2.2x the disk)",
     )
     ap.add_argument("--verify-only", action="store_true")
+    ap.add_argument(
+        "--allow-geotiff",
+        action="store_true",
+        help="proceed with the full GeoTIFF release (needs rasterio; see preflight)",
+    )
     args = ap.parse_args()
 
     if args.verify_only:
@@ -170,11 +236,15 @@ def main() -> int:
         print(f"no URLs in {args.urls}", file=sys.stderr)
         return 1
 
-    archive_gb = guess_archive_gb(urls)
+    jobs = plan(urls)
+    preflight(jobs, args.allow_geotiff)
+
+    archive_gb = guess_archive_gb([u[0] for _, u in jobs])
     needed = archive_gb if args.keep_archives else archive_gb * 1.2
     needed += archive_gb * 1.2  # extracted contents
     available = free_gb(args.dest)
-    print(f"{len(urls)} archive(s), ~{archive_gb:.0f} GB compressed")
+    parts = sum(len(u) for _, u in jobs)
+    print(f"{len(jobs)} archive(s) from {parts} URL(s), ~{archive_gb:.0f} GB compressed")
     print(f"need ~{needed:.0f} GB, have {available:.0f} GB free at {args.dest}")
     if available < needed:
         print(
@@ -185,8 +255,13 @@ def main() -> int:
         return 1
 
     entries = []
-    for url in urls:
-        archive = download(url, args.dest)
+    for name, part_urls in jobs:
+        downloaded = [download(u, args.dest) for u in part_urls]
+        archive = (
+            downloaded[0]
+            if len(downloaded) == 1
+            else join_parts(downloaded, args.dest / name)
+        )
         size = archive.stat().st_size
         print(f"    {size / 1024**3:.2f} GB, hashing…")
         digest = sha256(archive)

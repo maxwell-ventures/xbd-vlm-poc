@@ -44,18 +44,13 @@ from xbd_vlm.prompts import (  # noqa: E402
     build_prompt,
     template_fingerprint,
 )
+from xbd_vlm.sampling import select, stable_fraction  # noqa: E402
 from xbd_vlm.schema import (  # noqa: E402
     DAMAGE_GRADES,
     SCHEMA_VERSION,
     Assessment,
     priority_for,
 )
-
-
-def stable_fraction(uid: str, salt: str) -> float:
-    """Uniform in [0,1), stable across runs — used for sampling order and masks."""
-    h = hashlib.sha1(f"{salt}|{uid}".encode()).digest()
-    return int.from_bytes(h[:8], "big") / 2**64
 
 
 def portable(path: str) -> str:
@@ -126,20 +121,6 @@ def make_example(row: dict, use_pre: bool) -> dict | None:
             "has_pre_image": has_pre,
         },
     }
-
-
-def select(rows: list[dict], per_class: int, salt: str) -> list[dict]:
-    if per_class <= 0:
-        return rows
-    buckets: dict[str, list[dict]] = defaultdict(list)
-    for r in rows:
-        buckets[r["damage_grade"]].append(r)
-    picked = []
-    for grade in DAMAGE_GRADES:
-        b = sorted(buckets[grade], key=lambda r: stable_fraction(r["uid"], salt))
-        picked.extend(b[:per_class])
-    picked.sort(key=lambda r: stable_fraction(r["uid"], salt + "-order"))
-    return picked
 
 
 def main() -> int:

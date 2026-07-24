@@ -31,11 +31,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from xbd_vlm.sampling import select_all_splits  # noqa: E402
 
 try:
     from PIL import Image, ImageDraw
@@ -107,6 +110,15 @@ def main() -> int:
     ap.add_argument("--pre", action="store_true", help="also chip the pre-event tile")
     ap.add_argument("--outline", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--split", type=Path, default=Path("configs/split.json"))
+    ap.add_argument("--per-class", type=int, default=1500)
+    ap.add_argument("--val-per-class", type=int, default=200)
+    ap.add_argument("--test-per-class", type=int, default=400)
+    ap.add_argument(
+        "--all",
+        action="store_true",
+        help="chip every building instead of the sampled subset (very large)",
+    )
     args = ap.parse_args()
 
     out_path = args.out or args.labels
@@ -114,6 +126,30 @@ def main() -> int:
         rows = list(csv.DictReader(f))
     if args.limit:
         rows = rows[: args.limit]
+
+    # Chip only the buildings the dataset will actually reference. xBD has
+    # ~850k polygons; this project uses a few thousand. Chipping everything
+    # would produce two orders of magnitude more data than the training set
+    # needs, and the sampling is deterministic, so build_dataset.py selects the
+    # identical rows without the two scripts having to agree on anything but
+    # the caps.
+    selected: set[str] | None = None
+    if not args.all:
+        if not args.split.exists():
+            raise SystemExit(
+                f"{args.split} not found — run scripts/split.py first, or pass "
+                "--all to chip every building (expect hundreds of GB)."
+            )
+        assignment = json.loads(args.split.read_text())["assignment"]
+        caps = {
+            "train": args.per_class,
+            "val": args.val_per_class,
+            "test": args.test_per_class,
+        }
+        chosen = select_all_splits(rows, assignment, caps)
+        selected = {r["uid"] for split_rows in chosen.values() for r in split_rows}
+        summary = "  ".join(f"{sp}={len(v)}" for sp, v in sorted(chosen.items()))
+        print(f"chipping {len(selected)} of {len(rows)} buildings   {summary}")
 
     # Sort by tile so each full image is opened exactly once.
     rows.sort(key=lambda r: (r["post_image"], r["uid"]))
@@ -124,6 +160,10 @@ def main() -> int:
     for i, row in enumerate(rows, 1):
         row["chip_post"] = ""
         row["chip_pre"] = ""
+
+        if selected is not None and row["uid"] not in selected:
+            stats["not_selected"] += 1
+            continue
 
         if float(row["area_px"] or 0) < args.min_area:
             stats["skipped_tiny"] += 1
