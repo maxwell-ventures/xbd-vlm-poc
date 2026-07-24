@@ -1,0 +1,44 @@
+#!/bin/sh
+# Block secrets from entering history.
+#
+# .gitignore already covers .env and configs/xbd_urls.txt, but ignore rules lose
+# to `git add -f`, to a file that was tracked before the rule existed, and to a
+# stray copy under a name nobody thought to ignore. This repo is going to be
+# shown to people and holds a key that can spend money, so it gets a second
+# check that runs regardless.
+#
+# Enable (once per clone, including on the pod):
+#   git config core.hooksPath .githooks
+
+fail=0
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+for f in $staged; do
+    case "$f" in
+        .env.example) continue ;;
+        .env|.env.*|*/.env|*/.env.*)
+            echo "BLOCKED: $f is an environment file"
+            fail=1
+            ;;
+        configs/xbd_urls.txt|*xbd_urls.txt)
+            echo "BLOCKED: $f holds signed download links (credentials)"
+            fail=1
+            ;;
+    esac
+done
+
+# Content scan for the shapes of keys this project actually handles.
+for f in $staged; do
+    [ -f "$f" ] || continue
+    case "$f" in .githooks/*) continue ;; esac
+    if git show ":$f" 2>/dev/null | grep -qE 'hf_[A-Za-z0-9]{34}|Signature=[A-Za-z0-9~_-]{40}|Key-Pair-Id=APKA'; then
+        echo "BLOCKED: $f contains something shaped like a token or signed URL"
+        fail=1
+    fi
+done
+
+if [ "$fail" -ne 0 ]; then
+    echo
+    echo "Commit aborted. Unstage the file, or --no-verify if it is a false positive."
+    exit 1
+fi

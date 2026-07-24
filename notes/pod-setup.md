@@ -26,6 +26,8 @@ cd /workspace
 git clone <your-repo-url> VLM_poc      # first time only
 cd VLM_poc && git pull
 
+git config core.hooksPath .githooks    # secret guard; per clone, not inherited
+
 cp .env.example .env                   # first time only, then fill it in
 set -a && . ./.env && set +a
 

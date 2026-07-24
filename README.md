@@ -39,8 +39,12 @@ Training and inference run on a rented GPU. The repo is the unit of transfer:
 
 ```bash
 pip install -r requirements.txt
+git config core.hooksPath .githooks   # blocks secrets from being committed
 python scripts/smoke_test.py          # verifies schema + metrics, no data needed
 ```
+
+`core.hooksPath` lives in `.git/config`, which is not cloned — run that line in
+every clone, including on the pod.
 
 Then, on the machine with the disk for it (see [notes/pod-setup.md](notes/pod-setup.md)):
 
