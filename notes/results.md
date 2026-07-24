@@ -78,22 +78,37 @@ for that slice.
 
 ---
 
-## ⚠ Open methodological issue: precision mismatch
+## Baseline — bf16 on GPU (the reported baseline)
 
-This baseline was measured with a **4-bit MLX quantization** on the laptop. The
-tuned model will be trained and evaluated on a rented GPU in **bf16**. Comparing
-those two directly would conflate the effect of fine-tuning with the effect of
-quantization, and the headline delta would not mean what it claims.
+Re-measured on an A40 with `scripts/predict.py` in **bf16**, the same precision
+and backend as the tuned model will use. This is the number the delta is measured
+against; the laptop MLX run above was the cheap dress rehearsal.
 
-**Required before publishing any delta:** re-run the baseline on the pod with
-`scripts/predict.py`, in the same precision and on the same backend as the tuned
-model, against the identical test file. That number replaces this one as the
-reported baseline.
+| metric | laptop 4-bit MLX | **pod bf16** |
+|---|---|---|
+| accuracy (all) | 0.252 | **0.254** |
+| macro F1 | 0.104 | **0.109** |
+| QWK | 0.012 | **0.009** |
+| ordinal MAE | 0.992 | **0.995** |
+| unparseable | 0.0% | **0.0%** |
 
-This local run was still worth doing — it cost nothing, validated the prompt,
-the schema and the parser end to end, and established that the base model is a
-degenerate constant predictor. It is a strong prior that quantization is not
-what is producing QWK 0.012. But a prior is not a measurement.
+```
+confusion (rows=true, cols=pred)   [bf16]
+                no-damage  minor-dam  major-dam  destroyed
+no-damage               0        395          0          3
+minor-damage            0        398          0          1
+major-damage            0        399          0          0
+destroyed               0        390          0          7
+```
+
+**The precision mismatch was a non-issue.** The two baselines agree to within
+noise: the base model is a degenerate constant predictor in both precisions,
+QWK ≈ 0 either way. Quantization was never what produced the flat baseline. The
+bf16 run shifts a handful of predictions into `destroyed` but the picture is
+unchanged — it still never predicts `no-damage` and still funnels ~98% of chips
+into `minor-damage`.
+
+File: `outputs/eval/base_post_gpu.json`, generations in `base_post_gpu.jsonl`.
 
 ---
 
