@@ -1,0 +1,79 @@
+{
+  "name": "base zero-shot (post-only)",
+  "n_total": 1593,
+  "n_parsed": 1593,
+  "unparseable_rate": 0.0,
+  "parse_failure_reasons": {},
+  "accuracy_parsed": 0.2517263025737602,
+  "accuracy_all": 0.2517263025737602,
+  "adjacent_error_rate": 0.504708097928437,
+  "distant_error_rate": 0.24356559949780288,
+  "mae_ordinal": 0.9918392969240427,
+  "macro_f1": 0.10428075036836666,
+  "qwk": 0.012171029255004573,
+  "per_class": {
+    "no-damage": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 398
+    },
+    "minor-damage": {
+      "precision": 0.2522179974651457,
+      "recall": 0.9974937343358395,
+      "f1": 0.40263024785027823,
+      "support": 399
+    },
+    "major-damage": {
+      "precision": 0.2,
+      "recall": 0.007518796992481203,
+      "f1": 0.014492753623188406,
+      "support": 399
+    },
+    "destroyed": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 397
+    }
+  },
+  "confusion_matrix": [
+    [
+      0,
+      397,
+      1,
+      0
+    ],
+    [
+      0,
+      398,
+      1,
+      0
+    ],
+    [
+      0,
+      396,
+      3,
+      0
+    ],
+    [
+      0,
+      387,
+      10,
+      0
+    ]
+  ],
+  "confusion_labels": [
+    "no-damage",
+    "minor-damage",
+    "major-damage",
+    "destroyed"
+  ],
+  "priority_accuracy": 0.24984306340238543,
+  "priority_labels": [
+    "none",
+    "moderate",
+    "high",
+    "critical"
+  ]
+}
