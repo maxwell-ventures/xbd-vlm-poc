@@ -202,6 +202,20 @@ def main() -> int:
     )
     ap.add_argument("--verify-only", action="store_true")
     ap.add_argument(
+        "--from-local",
+        type=Path,
+        nargs="+",
+        default=None,
+        help="ingest archives already on disk (e.g. downloaded by a browser) "
+        "instead of fetching URLs — same hashing, extraction and verification",
+    )
+    ap.add_argument(
+        "--consume",
+        action="store_true",
+        help="with --from-local, delete each archive after extracting it. Off by "
+        "default: those are your files, not ours.",
+    )
+    ap.add_argument(
         "--allow-geotiff",
         action="store_true",
         help="proceed with the full GeoTIFF release (needs rasterio; see preflight)",
@@ -212,6 +226,68 @@ def main() -> int:
         problems = verify_layout(args.dest)
         for p in problems:
             print(f"  ! {p}")
+        return 1 if problems else 0
+
+    if args.from_local:
+        # A browser download is a perfectly good way to get the data. It just
+        # skips the hashing, extraction and layout check, so route it back
+        # through the same path. Note that Safari transparently gunzips, so a
+        # .tar.gz can arrive as .tar — the recorded hash is of the file actually
+        # used, which will not match the publisher's checksum for the .tar.gz.
+        archives = []
+        for path in args.from_local:
+            if path.is_dir():
+                archives += sorted(
+                    p for p in path.iterdir() if p.suffix in {".tar", ".gz", ".tgz"}
+                )
+            elif path.exists():
+                archives.append(path)
+            else:
+                print(f"warning: {path} does not exist, skipping", file=sys.stderr)
+        if not archives:
+            print("no archives found to ingest", file=sys.stderr)
+            return 1
+
+        args.dest.mkdir(parents=True, exist_ok=True)
+        total_gb = sum(a.stat().st_size for a in archives) / 1024**3
+        available = free_gb(args.dest)
+        print(f"{len(archives)} local archive(s), {total_gb:.1f} GB")
+        print(f"extracted contents need ~{total_gb * 1.1:.1f} GB, "
+              f"{available:.1f} GB free at {args.dest}")
+        if available < total_gb * 1.1:
+            print("\nNot enough disk to extract these.", file=sys.stderr)
+            return 1
+
+        entries = []
+        for archive in archives:
+            print(f"\n--> {archive.name}")
+            size = archive.stat().st_size
+            print(f"    {size / 1024**3:.2f} GB, hashing…")
+            entries.append(
+                {"file": archive.name, "bytes": size, "sha256": sha256(archive)}
+            )
+            extract(archive, args.dest)
+            if args.consume:
+                archive.unlink()
+                print("    archive deleted (--consume)")
+
+        print("\nverifying layout")
+        problems = verify_layout(args.dest)
+        for p in problems:
+            print(f"  ! {p}")
+        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        with args.manifest.open("a") as f:
+            f.write(
+                "\n".join(
+                    [
+                        f"\n## Local ingest {stamp}\n",
+                        "```json",
+                        json.dumps(entries, indent=2),
+                        "```\n",
+                    ]
+                )
+            )
+        print(f"\nrecorded {len(entries)} archive(s) in {args.manifest}")
         return 1 if problems else 0
 
     if not args.urls.exists():

@@ -1,0 +1,16 @@
+{
+  "grouping": "event",
+  "note": "deviates from the official xView2 split; see docstring",
+  "assignment": {
+    "guatemala-volcano": "train",
+    "hurricane-florence": "train",
+    "hurricane-harvey": "train",
+    "hurricane-matthew": "val",
+    "hurricane-michael": "test",
+    "mexico-earthquake": "train",
+    "midwest-flooding": "train",
+    "palu-tsunami": "train",
+    "santa-rosa-wildfire": "train",
+    "socal-fire": "test"
+  }
+}

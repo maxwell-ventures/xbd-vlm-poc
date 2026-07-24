@@ -89,3 +89,15 @@ python scripts/download_xbd.py --verify-only --dest data/raw
 ## Archive hashes
 
 Appended automatically by `download_xbd.py` on each run.
+
+## Download 2026-07-24 01:59 UTC
+
+```json
+[
+  {
+    "file": "train_images_labels_targets.tar.gz",
+    "bytes": 8381754539,
+    "sha256": "a5941b7a3e523eafc4aeaa740a1c83f1af6a18c894e7e8c62dd830a76921ecd4"
+  }
+]
+```
