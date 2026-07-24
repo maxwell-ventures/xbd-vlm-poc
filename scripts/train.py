@@ -189,7 +189,8 @@ def main() -> int:
     # first and shift the boundary — force right-padding for training.
     processor.tokenizer.padding_side = "right"
 
-    load_kwargs = {"dtype": torch.bfloat16, "device_map": "auto"}
+    # transformers 4.51 names this torch_dtype; the bare `dtype` alias is 5.x-only.
+    load_kwargs = {"torch_dtype": torch.bfloat16, "device_map": "auto"}
     if args.load_4bit:
         from transformers import BitsAndBytesConfig
 

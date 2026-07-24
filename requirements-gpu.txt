@@ -1,8 +1,16 @@
 # GPU box only. torch comes from the pod image — do not reinstall it.
-transformers>=4.49
-accelerate>=1.0
-peft>=0.14
-trl>=0.13
+#
+# Versions are pinned to a set proven against torch 2.4.x. The unpinned latest
+# (transformers 5.x) requires a newer torch than the RunPod pytorch:2.4.1 image
+# ships, and fails at import with `cannot import name 'DTensor'`. If you use a
+# newer base image with torch >= 2.6, these upper bounds can be relaxed.
+transformers==4.51.3
+tokenizers>=0.21,<0.22
+accelerate>=1.0,<2.0
+peft>=0.14,<0.16
 bitsandbytes>=0.45
 qwen-vl-utils
 pillow>=10.0
+
+# trl is intentionally omitted: train.py uses the plain transformers Trainer, and
+# recent trl pins transformers>=5, which conflicts with the line above.

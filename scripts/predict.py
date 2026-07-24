@@ -74,7 +74,8 @@ def main() -> int:
     from PIL import Image
     from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
-    kwargs = {"dtype": torch.bfloat16, "device_map": "auto"}
+    # transformers 4.51 names this torch_dtype; the bare `dtype` alias is 5.x-only.
+    kwargs = {"torch_dtype": torch.bfloat16, "device_map": "auto"}
     if args.load_4bit:
         from transformers import BitsAndBytesConfig
 
@@ -85,6 +86,11 @@ def main() -> int:
         )
 
     processor = AutoProcessor.from_pretrained(args.model)
+    # Batched GENERATION requires left-padding: with right-padding the model
+    # continues from pad tokens for every sequence shorter than the longest in
+    # the batch, corrupting their output. (Training is the opposite — the
+    # collator in train.py uses right-padding on purpose.)
+    processor.tokenizer.padding_side = "left"
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(args.model, **kwargs)
     if args.adapter:
         from peft import PeftModel
