@@ -1,0 +1,8 @@
+# GPU box only. torch comes from the pod image — do not reinstall it.
+transformers>=4.49
+accelerate>=1.0
+peft>=0.14
+trl>=0.13
+bitsandbytes>=0.45
+qwen-vl-utils
+pillow>=10.0

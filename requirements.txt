@@ -1,0 +1,5 @@
+# Local (laptop) — data prep, dataset building, scoring. No GPU needed.
+pillow>=10.0
+
+# GPU box only. Install with:  pip install -r requirements-gpu.txt
+# Kept separate so the laptop side stays a 30-second install.

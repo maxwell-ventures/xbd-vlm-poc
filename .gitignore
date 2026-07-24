@@ -1,0 +1,20 @@
+# Raw xBD — tens of GB, license-gated, never in git
+data/raw/
+data/chips/
+data/processed/
+data/labels.csv
+data/*.tmp
+
+# Adapters and generations
+outputs/adapters/
+outputs/eval/*.jsonl
+
+# Metrics json IS tracked — it is the result
+!outputs/eval/*.json
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
