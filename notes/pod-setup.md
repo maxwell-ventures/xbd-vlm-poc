@@ -51,6 +51,52 @@ to run `tar` is paying GPU rates to wait on I/O.
 
 Both mount the same volume, so switching costs nothing but a restart.
 
+## The GPU session, end to end
+
+Data is already prepared and committed. On the GPU pod, after `git pull` and
+`pip install -r requirements-gpu.txt`:
+
+```bash
+# 1. Re-measure the baseline IN THE TUNED MODEL'S PRECISION.
+#    The laptop baseline was 4-bit MLX; comparing that to a bf16 adapter would
+#    conflate fine-tuning with quantization. This number replaces it.
+python scripts/predict.py --data data/processed/test_post.jsonl \
+    --out outputs/eval/base_post_gpu.jsonl
+
+# 2. Run 1 — post-only LoRA. ~1–2 hr on a 24 GB card.
+python scripts/train.py \
+    --train data/processed/train_post.jsonl \
+    --val   data/processed/val_post.jsonl \
+    --out   outputs/adapters/run1_post
+
+python scripts/predict.py --data data/processed/test_post.jsonl \
+    --adapter outputs/adapters/run1_post --out outputs/eval/run1_post.jsonl
+
+# 3. Run 2 — pre+post LoRA. Same recipe, the pre/post dataset.
+python scripts/train.py \
+    --train data/processed/train_prepost.jsonl \
+    --val   data/processed/val_prepost.jsonl \
+    --out   outputs/adapters/run2_prepost
+
+python scripts/predict.py --data data/processed/test_prepost.jsonl \
+    --adapter outputs/adapters/run2_prepost --out outputs/eval/run2_prepost.jsonl
+```
+
+Scoring can run here or back on the laptop (it needs no GPU):
+
+```bash
+python scripts/evaluate.py --pred outputs/eval/run1_post.jsonl \
+    --baseline outputs/eval/base_post_gpu.jsonl --out outputs/eval/run1.json
+python scripts/evaluate.py --pred outputs/eval/run2_prepost.jsonl \
+    --baseline outputs/eval/base_post_gpu.jsonl --out outputs/eval/run2.json
+```
+
+If a run OOMs on a 24 GB card, drop `--batch-size` to 1 and raise `--grad-accum`
+to 16 (the effective batch is their product, recorded in run_config.json), or
+add `--load-4bit` for QLoRA. `predict.py` refuses to run an adapter whose
+template fingerprint does not match the current `prompts.py`, so a mismatched
+checkout fails loudly rather than silently degrading.
+
 ## Getting results back
 
 Metrics and adapters are small. Everything else stays on the volume.

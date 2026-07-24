@@ -314,6 +314,7 @@ scripts/
   split.py                labels.csv  → configs/split.json        [CPU]
   build_chips.py          labels.csv  → per-building crops        [CPU]
   build_dataset.py        labels.csv  → data/processed/*.jsonl    [CPU]
+  train.py                jsonl       → LoRA adapter + run_config  [GPU]
   predict.py              jsonl       → raw generations           [GPU]
   predict_mlx.py          jsonl       → raw generations      [Apple silicon]
   evaluate.py             generations → metrics + delta table     [CPU]
