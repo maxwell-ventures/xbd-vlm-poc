@@ -167,5 +167,8 @@ which covers the generated chips, the processed training files, and
 (conservatively) the trained adapter. Nothing derived from `data/raw/` is
 committed here. Reasoning and attribution text: [notes/dataset.md](notes/dataset.md).
 
-Code in `scripts/` and `xbd_vlm/` is separate from the dataset and is released
-under the [MIT License](LICENSE).
+The **code** — `scripts/`, `xbd_vlm/`, `configs/`, `.githooks/` and the docs — is
+released under the [MIT License](LICENSE). That licence covers the code only. It
+does **not** extend to the xBD dataset or anything derived from it (the generated
+chips, the processed training files, the trained adapter), which remain
+CC BY-NC-SA 4.0 and are not distributed in this repo.
