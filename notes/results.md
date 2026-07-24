@@ -114,8 +114,59 @@ File: `outputs/eval/base_post_gpu.json`, generations in `base_post_gpu.jsonl`.
 
 ## Run 1 — LoRA, post-only
 
-*pending*
+Adapter: `outputs/adapters/run1_post` (rank 16, α 32, lr 1e-4, 2 epochs, best
+eval loss 0.115 at step ~550 of 740). Vision encoder + projector frozen. Scored
+against the bf16 baseline on the identical test set.
+
+### The headline delta
+
+| metric | base | **tuned** | delta |
+|---|---|---|---|
+| QWK | 0.009 | **0.546** | **+0.537** |
+| macro F1 | 0.109 | **0.503** | +0.394 |
+| accuracy (all) | 0.254 | **0.517** | +0.262 |
+| ordinal MAE (lower) | 0.995 | **0.629** | −0.366 |
+| unparseable | 0.0% | **0.0%** | — |
+
+QWK moves from chance to moderate–substantial agreement. The baseline was fair
+(0% unparseable, same precision, same prompt), so none of this is format-
+compliance inflation — it is assessment skill.
+
+### Per-class recall — the model went from degenerate to discriminating
+
+| grade | base | tuned |
+|---|---|---|
+| no-damage | 0.000 | 0.271 |
+| minor-damage | 0.997 | 0.313 |
+| major-damage | 0.000 | 0.722 |
+| destroyed | 0.018 | 0.761 |
+
+```
+confusion (rows=true, cols=pred)   [tuned]
+                no-damage  minor-dam  major-dam  destroyed
+no-damage             108        142         98         50
+minor-damage            0        125        261         13
+major-damage           10         47        288         54
+destroyed               4          3         88        302
+```
+
+The minor-damage recall *drop* is not regression: the base only "won" that class
+by labelling everything minor. The real weakness is real and expected — **261 of
+399 minor-damage chips are called major-damage.** That is the minor/major
+boundary the brief flagged as hardest, and the one predicted to suffer under
+post-only chipping because it is fundamentally change detection. no-damage recall
+(0.271) is weak for the same reason: an intact roof is ambiguous without a
+"before" image. Both are the explicit motivation for run 2.
+
+### Slices worth noting
+
+- **Context withheld barely hurts** (QWK 0.549 shown vs 0.535 withheld). The model
+  is not over-reliant on the event-type prompt field — the healthy result.
+- **Per event type:** wildfire QWK 0.796, tornado 0.656 (sharp, localised damage
+  reads well); hurricane 0.141 and tsunami 0.114 are weakest. Do not quote the
+  volcanic-eruption slice — n=6.
 
 ## Run 2 — LoRA, pre + post
 
-*pending*
+*training — ~19 s/it (two images/example), ETA ~3.5–4 h. Hypothesis: the
+pre-event image lifts exactly the minor↔major and no-damage cases failing above.*
