@@ -101,3 +101,15 @@ Appended automatically by `download_xbd.py` on each run.
   }
 ]
 ```
+
+## Local ingest 2026-07-24 02:15 UTC
+
+```json
+[
+  {
+    "file": "tier3.tar",
+    "bytes": 18808371200,
+    "sha256": "53ea37b4664398a85dd22c7a6b79e7921bfbea5620db28597bd0dec931c7b666"
+  }
+]
+```

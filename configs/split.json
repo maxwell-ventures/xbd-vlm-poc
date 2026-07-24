@@ -2,15 +2,24 @@
   "grouping": "event",
   "note": "deviates from the official xView2 split; see docstring",
   "assignment": {
-    "guatemala-volcano": "train",
+    "guatemala-volcano": "test",
     "hurricane-florence": "train",
     "hurricane-harvey": "train",
     "hurricane-matthew": "val",
     "hurricane-michael": "test",
+    "joplin-tornado": "test",
+    "lower-puna-volcano": "train",
     "mexico-earthquake": "train",
-    "midwest-flooding": "train",
+    "midwest-flooding": "test",
+    "moore-tornado": "train",
+    "nepal-flooding": "train",
     "palu-tsunami": "train",
-    "santa-rosa-wildfire": "train",
-    "socal-fire": "test"
+    "pinery-bushfire": "train",
+    "portugal-wildfire": "train",
+    "santa-rosa-wildfire": "test",
+    "socal-fire": "val",
+    "sunda-tsunami": "test",
+    "tuscaloosa-tornado": "val",
+    "woolsey-fire": "train"
   }
 }
