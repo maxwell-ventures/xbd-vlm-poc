@@ -168,5 +168,69 @@ post-only chipping because it is fundamentally change detection. no-damage recal
 
 ## Run 2 — LoRA, pre + post
 
-*training — ~19 s/it (two images/example), ETA ~3.5–4 h. Hypothesis: the
-pre-event image lifts exactly the minor↔major and no-damage cases failing above.*
+Adapter: `outputs/adapters/run2_prepost` (identical recipe to run 1, best eval
+loss 0.115). The one variable changed from run 1 is the input: each example now
+carries the pre-event image as well as the post-event image. Same 1593 test
+buildings in the same order (selection is a uid-hash keyed on the split name,
+independent of the `--pre` flag), so run 1 vs run 2 is a clean one-variable
+ablation isolating the effect of the before-image.
+
+### Run 1 → Run 2 (isolates the before-image)
+
+| metric | run 1 (post) | run 2 (pre+post) | delta |
+|---|---|---|---|
+| QWK | 0.546 | 0.570 | +0.024 |
+| macro-F1 | 0.503 | 0.528 | +0.025 |
+| accuracy | 0.517 | 0.529 | +0.012 |
+| ordinal MAE (lower) | 0.629 | 0.615 | −0.014 |
+| unparseable | 0.0% | 0.0% | — |
+
+| grade | run 1 recall | run 2 recall | delta |
+|---|---|---|---|
+| no-damage | 0.271 | 0.422 | **+0.151** |
+| minor-damage | 0.313 | 0.316 | +0.003 |
+| major-damage | 0.722 | 0.729 | +0.008 |
+| destroyed | 0.761 | 0.647 | **−0.113** |
+
+```
+confusion (rows=true, cols=pred)   [run 2, pre+post]
+                no-damage  minor-dam  major-dam  destroyed
+no-damage             168        112         88         30
+minor-damage           38        126        224         11
+major-damage           30         53        291         25
+destroyed              11         17        112        257
+```
+
+### Read: the hypothesis was half right, with a surprise
+
+The prediction was that the before-image would lift the no-damage and minor↔major
+cases, because both are fundamentally change detection and a post-only crop cannot
+do change detection.
+
+- **Confirmed on no-damage** (+0.151 recall). An intact building is now
+  identifiable because it looks the same before and after. This is the clean
+  change-detection win.
+- **Wrong on the minor/major boundary.** Minor-damage recall moved +0.003, i.e.
+  not at all. Minor-damage is still called major-damage 224 times (was 261 in run
+  1 — barely dented). The boundary I was most confident the before-image would fix
+  is the one that barely moved.
+- **Unpredicted regression on destroyed** (−0.113 recall). Adding the before-image
+  *hurt* the class run 1 handled best. destroyed→major misclassifications rose 88
+  → 112. Working theory (unverified): for a flattened building the pre-image shows
+  an intact structure, and reconciling "was a house, now a slab" pulls some
+  predictions toward major instead of destroyed.
+
+**Net:** the second image redistributed errors more than it reduced them. Large
+no-damage gain, offsetting destroyed loss, minor/major untouched, small positive
+aggregate (QWK +0.024). A +0.024 aggregate on 1593 examples is not decisive on its
+own; the per-class redistribution is the real, directional signal.
+
+This is a more useful result than a clean win: a prediction partly confirmed,
+partly wrong on the case it was most sure of, plus an unexpected regression to
+explain.
+
+## Run 3 — LoRA, 7B (planned)
+
+*Isolates model capacity: change only the base model (3B → 7B), holding the data
+condition fixed at the best 3B run. Tests whether raw capacity does what the
+before-image could not, especially on the stuck minor/major boundary.*
