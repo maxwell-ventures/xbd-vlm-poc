@@ -99,6 +99,10 @@ grounded visual reasoning. Both caveats are load-bearing and are repeated in
 
 ## License
 
-xBD is redistributed under its own terms — see the xView2 site. Nothing from
-`data/raw/` is committed here. Record the dataset version and license text in
-`notes/dataset.md` at download time.
+xBD is **CC BY-NC-SA 4.0**. Non-commercial only, and adaptations inherit the
+licence — which covers the generated chips, the processed training files, and
+(conservatively) the trained adapter. Nothing derived from `data/raw/` is
+committed here. Full reasoning and attribution text: [notes/dataset.md](notes/dataset.md).
+
+The code in `scripts/` and `xbd_vlm/` is separate from the dataset and is not
+covered by that licence.
