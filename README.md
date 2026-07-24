@@ -16,6 +16,7 @@ xbd_vlm/          shared library — the only code that touches the schema
   events.py       event type and date per disaster
   metrics.py      ordinal metrics: per-class, QWK, MAE, unparseable rate
 scripts/
+  download_xbd.py        xView2       -> data/raw + hashes in notes/dataset.md
   parse_annotations.py   raw GeoJSON  -> data/labels.csv
   build_chips.py         labels.csv   -> per-building crops
   split.py               labels.csv   -> configs/split.json (grouped by event)
@@ -41,9 +42,14 @@ pip install -r requirements.txt
 python scripts/smoke_test.py          # verifies schema + metrics, no data needed
 ```
 
-Then, once xBD is downloaded to `data/raw/`:
+Then, on the machine with the disk for it (see [notes/pod-setup.md](notes/pod-setup.md)):
 
 ```bash
+cp .env.example .env                  # fill in HF_TOKEN; never commit this
+python scripts/download_xbd.py        # creates configs/xbd_urls.txt on first run
+# paste your xView2 download links into that file, then:
+python scripts/download_xbd.py --dest data/raw
+
 python scripts/parse_annotations.py --raw data/raw --out data/labels.csv
 python scripts/build_chips.py --labels data/labels.csv --chips data/chips --pre
 python scripts/split.py --labels data/labels.csv --out configs/split.json

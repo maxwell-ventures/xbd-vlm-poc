@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""Stage 1 — fetch xBD, verify it, and record what was fetched.
+
+    # 1. log in at https://xview2.org, accept the terms, open the download page
+    # 2. copy the download links (right-click -> copy link address)
+    # 3. paste them, one per line, into configs/xbd_urls.txt
+    # 4. run:
+    python scripts/download_xbd.py --dest data/raw
+
+## Why links rather than a username and password
+
+The links xView2 hands out are signed and time-limited. Copying them avoids
+storing a password anywhere and avoids a login scraper that breaks the next time
+the site's markup changes. The cost is that links expire — if a download 403s,
+refresh the page and re-copy. `configs/xbd_urls.txt` is gitignored precisely
+because a signed link is a credential.
+
+## What it does
+
+* refuses to start if the destination cannot hold the archives plus their
+  extracted contents (roughly 2.2x the archive size)
+* resumes interrupted downloads rather than restarting them
+* records sha256 and byte size of every archive into notes/dataset.md, so the
+  exact data version is reproducible
+* verifies the extracted layout is what the rest of the pipeline expects
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Approximate archive sizes, for the disk precheck only. Verify against the
+# site; these are used to warn early, not to validate.
+KNOWN_SIZES_GB = {
+    "train": 8.0,
+    "tier3": 17.0,
+    "test": 1.7,
+    "hold": 1.7,
+}
+
+
+def free_gb(path: Path) -> float:
+    path.mkdir(parents=True, exist_ok=True)
+    return shutil.disk_usage(path).free / 1024**3
+
+
+def guess_archive_gb(urls: list[str]) -> float:
+    total = 0.0
+    for u in urls:
+        name = u.split("?")[0].rsplit("/", 1)[-1].lower()
+        total += next(
+            (gb for key, gb in KNOWN_SIZES_GB.items() if key in name), 2.0
+        )
+    return total
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def download(url: str, dest_dir: Path) -> Path:
+    name = url.split("?")[0].rsplit("/", 1)[-1] or "xbd_archive.tar.gz"
+    out = dest_dir / name
+    print(f"\n--> {name}")
+    # -C - resumes a partial file; --fail turns an expired link into a non-zero
+    # exit rather than a 12-byte HTML error page saved as a tarball.
+    result = subprocess.run(
+        ["curl", "-L", "--fail", "-C", "-", "-o", str(out), url],
+        check=False,
+    )
+    if result.returncode == 33:
+        # Server refused a ranged request; start over.
+        out.unlink(missing_ok=True)
+        result = subprocess.run(
+            ["curl", "-L", "--fail", "-o", str(out), url], check=False
+        )
+    if result.returncode != 0:
+        raise SystemExit(
+            f"\ncurl failed ({result.returncode}) on {name}.\n"
+            "If this is a 403, the signed link has expired — refresh the "
+            "xView2 download page and re-copy it into configs/xbd_urls.txt."
+        )
+    return out
+
+
+def extract(archive: Path, dest: Path) -> None:
+    print(f"    extracting {archive.name}")
+    subprocess.run(["tar", "-xf", str(archive), "-C", str(dest)], check=True)
+
+
+def verify_layout(dest: Path) -> list[str]:
+    """Confirm the pipeline's expected layout actually exists."""
+    problems = []
+    sources = [p for p in dest.iterdir() if p.is_dir()]
+    if not sources:
+        return ["nothing extracted under " + str(dest)]
+    found_any = False
+    for src in sorted(sources):
+        labels = src / "labels"
+        images = src / "images"
+        if not labels.is_dir() or not images.is_dir():
+            continue
+        found_any = True
+        n_post = len(list(labels.glob("*_post_disaster.json")))
+        n_img = len(list(images.glob("*_post_disaster.png")))
+        print(f"    {src.name:<10} {n_post:>6} post-event labels, {n_img:>6} images")
+        if n_post == 0:
+            problems.append(f"{src.name}: no *_post_disaster.json under labels/")
+        if n_img < n_post:
+            problems.append(
+                f"{src.name}: {n_post - n_img} labelled tiles have no image"
+            )
+    if not found_any:
+        problems.append(
+            "no <source>/images + <source>/labels pair found; the archive layout "
+            "differs from what parse_annotations.py expects"
+        )
+    return problems
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--urls", type=Path, default=Path("configs/xbd_urls.txt"))
+    ap.add_argument("--dest", type=Path, default=Path("data/raw"))
+    ap.add_argument("--manifest", type=Path, default=Path("notes/dataset.md"))
+    ap.add_argument(
+        "--keep-archives",
+        action="store_true",
+        help="keep the tarballs after extraction (needs ~2.2x the disk)",
+    )
+    ap.add_argument("--verify-only", action="store_true")
+    args = ap.parse_args()
+
+    if args.verify_only:
+        problems = verify_layout(args.dest)
+        for p in problems:
+            print(f"  ! {p}")
+        return 1 if problems else 0
+
+    if not args.urls.exists():
+        args.urls.parent.mkdir(parents=True, exist_ok=True)
+        args.urls.write_text(
+            "# One xView2 download URL per line. Blank lines and # comments ignored.\n"
+            "# Get these by logging in at https://xview2.org and copying the\n"
+            "# download links. They are signed and expire — re-copy if a 403 appears.\n"
+            "#\n"
+            "# Start with the challenge training set only. tier3 doubles the disk\n"
+            "# for data this project does not need.\n"
+        )
+        print(f"created {args.urls} — paste your download links into it, then re-run.")
+        return 1
+
+    urls = [
+        line.strip()
+        for line in args.urls.read_text().splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    if not urls:
+        print(f"no URLs in {args.urls}", file=sys.stderr)
+        return 1
+
+    archive_gb = guess_archive_gb(urls)
+    needed = archive_gb if args.keep_archives else archive_gb * 1.2
+    needed += archive_gb * 1.2  # extracted contents
+    available = free_gb(args.dest)
+    print(f"{len(urls)} archive(s), ~{archive_gb:.0f} GB compressed")
+    print(f"need ~{needed:.0f} GB, have {available:.0f} GB free at {args.dest}")
+    if available < needed:
+        print(
+            f"\nNot enough disk. Either drop tier3 from the URL list, or run this "
+            f"on the pod's network volume instead of the laptop.",
+            file=sys.stderr,
+        )
+        return 1
+
+    entries = []
+    for url in urls:
+        archive = download(url, args.dest)
+        size = archive.stat().st_size
+        print(f"    {size / 1024**3:.2f} GB, hashing…")
+        digest = sha256(archive)
+        entries.append({"file": archive.name, "bytes": size, "sha256": digest})
+        extract(archive, args.dest)
+        if not args.keep_archives:
+            archive.unlink()
+            print("    archive removed (pass --keep-archives to retain)")
+
+    print("\nverifying layout")
+    problems = verify_layout(args.dest)
+    for p in problems:
+        print(f"  ! {p}")
+
+    args.manifest.parent.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    block = [
+        f"\n## Download {stamp}\n",
+        "```json",
+        json.dumps(entries, indent=2),
+        "```\n",
+    ]
+    with args.manifest.open("a") as f:
+        f.write("\n".join(block))
+    print(f"\nrecorded {len(entries)} archive(s) in {args.manifest}")
+    print("\nNow paste the license text from xview2.org into notes/dataset.md.")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

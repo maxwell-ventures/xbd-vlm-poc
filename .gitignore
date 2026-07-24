@@ -1,3 +1,11 @@
+# Secrets. .env.example is the tracked template; .env never is.
+.env
+.env.*
+!.env.example
+
+# Signed xView2 download links are time-limited credentials, not config.
+configs/xbd_urls.txt
+
 # Raw xBD — tens of GB, license-gated, never in git
 data/raw/
 data/chips/
