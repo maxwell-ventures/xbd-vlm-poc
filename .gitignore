@@ -32,3 +32,9 @@ WRITEUP.md
 
 # Personal interview-prep notes, kept local
 notes/interview-prep-*.md
+
+# Figures: charts (no imagery) are tracked; composites containing xBD imagery are not
+outputs/figures/07_chip_pairs.png
+outputs/figures/08_inference_cards.png
+outputs/figures/09_chipping.png
+outputs/figures/gallery.html
