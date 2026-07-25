@@ -56,6 +56,64 @@ ensembles in a DoD-sponsored competition also hit. Minor damage is genuinely
 ambiguous from overhead imagery, which is exactly what the four-level scale's own
 annotators disagreed on most.
 
+## Methods used in the competition
+
+The top solutions converged on essentially one recipe, and it is instructive to
+contrast with ours because it is a different paradigm, not just a different score.
+
+1. **Semantic segmentation, not classification.** They predict a damage label per
+   *pixel* across the whole tile, then aggregate to buildings. We did per-building
+   generative classification.
+2. **Two-stage: localize, then classify.** Stage 1 is a U-Net encoder-decoder on
+   the *pre* images only (buildings intact, clean footprints) to segment
+   building / no-building. Stage 2 converts that model into a Siamese network, feeds
+   pre and post, and outputs the four-class damage per pixel.
+3. **Siamese / two-stream for change detection.** A shared-weight encoder processes
+   pre and post and the network compares them — the architectural embodiment of
+   "damage is change." This is the inductive bias we hoped our VLM would pick up
+   from being shown two images.
+4. **Heavy ensembling + TTA.** 1st place ran 12 models: four ImageNet backbones
+   (DPN92, ResNet34, SE-ResNeXt50, SENet154) × three seeds, plus test-time
+   augmentation. 2nd place ensembled cross-validation folds.
+5. **Class imbalance handled in the loss.** Both top solutions used Focal + Dice
+   ("FocalLossWithDice"). Focal down-weights the easy majority (no-damage) so the
+   rare classes still get gradient. Their answer to the 77% problem; ours was
+   balanced sampling.
+
+Later work moved to transformers (Dual-Task Siamese Transformer) and state-space
+models (ChangeMamba), but the Siamese change-detection skeleton stayed.
+
+### Contrast with this project
+
+| dimension | competition | this project |
+|---|---|---|
+| framing | per-pixel segmentation | per-building generative text |
+| localization | included (U-Net on pre) | skipped (ground-truth polygons) |
+| change detection | Siamese, baked into architecture | pre/post as 2 images, model must learn it |
+| imbalance | Focal + Dice loss | balanced sampling |
+| model | ensemble of 12 CNNs | single LoRA-tuned VLM |
+| output | damage class per pixel | grade + evidence + priority |
+| pretraining | ImageNet backbones | web-scale VLM |
+
+Three things fall out of that:
+
+- **They engineered change detection in; we handed it over and hoped.** A Siamese
+  shared encoder *forces* pre/post comparison. We gave the VLM a second image and
+  let it figure out what to do, which is why our pre/post gain was real but modest
+  (+0.02–0.05 QWK) rather than transformative. Their architecture has the right
+  inductive bias; ours relies on the model discovering it. Concretely: the
+  competition validates that the before-image matters — they made it the center of
+  the design.
+- **Ensembling is doing a lot of their work.** Twelve models plus TTA; we ran one
+  model with greedy decoding. Part of the gap to their numbers is ensembling we did
+  not do (it is on the QWK-improvement menu for a reason).
+- **Nobody used a VLM.** The competition was 2019–2020, before instruction-tuned
+  VLMs. So this is not "VLMs lost to CNNs" — it is a different paradigm that trades
+  the specialised segmentation pipeline for a general model that also emits
+  reviewable language and can take context. That is the honest "why a VLM": not to
+  beat 0.77 damage F1, but to get the natural-language rationale and the conditioning
+  a segmentation CNN structurally cannot produce.
+
 ## Why our numbers are NOT directly comparable
 
 We cannot claim a scoreboard position. The comparison is apples-to-oranges on at
@@ -91,6 +149,7 @@ not a place in line.
 - [IBM — The xView2 AI Challenge](https://www.ibm.com/think/insights/the-xview2-ai-challenge)
 - [xView2 scoring code (DIUx-xView)](https://github.com/DIUx-xView/xView2_scoring/blob/master/xview2_metrics.py)
 - [1st place solution — Durnov](https://github.com/vdurnov/xview2_1st_place_solution)
+- [2nd place solution — selimsef (DIUx-xView)](https://github.com/DIUx-xView/xView2_second_place)
 - [DeepDamageNet, arXiv:2405.04800](https://arxiv.org/html/2405.04800v1)
 - [xFBD: Focused Building Damage Dataset and Analysis, arXiv:2212.13876](https://arxiv.org/pdf/2212.13876)
 - [2nd place write-up — Computer Vision Talks](https://computer-vision-talks.com/2020-01-xview2-solution-writeup/)
