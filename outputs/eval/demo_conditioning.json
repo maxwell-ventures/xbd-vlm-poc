@@ -1,0 +1,109 @@
+{
+  "uid": "46d931ed-fc98-479d-9e37-5f0d9107aee7",
+  "disaster": "hurricane-michael",
+  "chip": "data/chips/hurricane-michael/46d931ed-fc98-479d-9e37-5f0d9107aee7_post.png",
+  "fixed_days": 5,
+  "fixed_event": "hurricane",
+  "base": [
+    {
+      "kind": "event",
+      "event_type": "hurricane",
+      "days": 5,
+      "label": "event = hurricane",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to have some visible damage, but the building's exterior walls and windows seem intact.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "event",
+      "event_type": "flood",
+      "days": 5,
+      "label": "event = flood",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to be partially damaged with visible water stains and pooling around the edges, indicating recent flooding.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "event",
+      "event_type": "wildfire",
+      "days": 5,
+      "label": "event = wildfire",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to have some discoloration and slight damage, indicating minor fire damage.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "event",
+      "event_type": "earthquake",
+      "days": 5,
+      "label": "event = earthquake",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears slightly tilted and there are some cracks visible, indicating minor structural damage.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 3,
+      "label": "days = 3",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to have some visible damage, but the building's exterior walls and windows seem intact.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 45,
+      "label": "days = 45",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to have some visible damage, but the building's exterior walls and windows seem intact.  \nPRIORITY: moderate"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 200,
+      "label": "days = 200",
+      "generation": "DAMAGE: minor-damage  \nEVIDENCE: The roof appears to have some damage but is still intact, with visible cracks and missing shingles.  \nPRIORITY: moderate"
+    }
+  ],
+  "tuned": [
+    {
+      "kind": "event",
+      "event_type": "hurricane",
+      "days": 5,
+      "label": "event = hurricane",
+      "generation": "DAMAGE: minor-damage\nEVIDENCE: Partial loss of roof covering over a limited area, walls sound; debris fields aligned along the prevailing wind direction.\nPRIORITY: moderate"
+    },
+    {
+      "kind": "event",
+      "event_type": "flood",
+      "days": 5,
+      "label": "event = flood",
+      "generation": "DAMAGE: minor-damage\nEVIDENCE: Partial loss of roof covering over a limited area, walls sound; standing water surrounding the structure.\nPRIORITY: moderate"
+    },
+    {
+      "kind": "event",
+      "event_type": "wildfire",
+      "days": 5,
+      "label": "event = wildfire",
+      "generation": "DAMAGE: no-damage\nEVIDENCE: No visible breach of the roof plane or structural envelope; charring on adjacent parcels with vegetation reduced to bare ground.\nPRIORITY: none"
+    },
+    {
+      "kind": "event",
+      "event_type": "earthquake",
+      "days": 5,
+      "label": "event = earthquake",
+      "generation": "DAMAGE: minor-damage\nEVIDENCE: Partial loss of roof covering over a limited area, walls sound; adjacent structures showing comparable collapse patterns.\nPRIORITY: moderate"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 3,
+      "label": "days = 3",
+      "generation": "DAMAGE: minor-damage\nEVIDENCE: Partial loss of roof covering over a limited area, walls sound; debris fields aligned along the prevailing wind direction.\nPRIORITY: moderate"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 45,
+      "label": "days = 45",
+      "generation": "DAMAGE: major-damage\nEVIDENCE: Partial collapse with visible deformation of the building footprint; debris fields aligned along the prevailing wind direction.\nPRIORITY: critical"
+    },
+    {
+      "kind": "days",
+      "event_type": "hurricane",
+      "days": 200,
+      "label": "days = 200",
+      "generation": "DAMAGE: major-damage\nEVIDENCE: Partial collapse with visible deformation of the building footprint; debris fields aligned along the prevailing wind direction.\nPRIORITY: critical"
+    }
+  ]
+}

@@ -293,3 +293,43 @@ predicted. A clean, honest negative result.
 
 Whole project: ~$8.33 of GPU (23.8 h on one A40, ephemeral, no volume). Pod
 terminated after pulling all artifacts.
+
+## The context-conditioning demo
+
+The brief's centerpiece: hold one post-event image fixed, vary only the stated
+context, and see whether the assessment moves. Run locally (Apple silicon, 3B
+base vs tuned) on one Hurricane Michael building (true grade major-damage).
+`scripts/demo_conditioning.py`, results in `outputs/eval/demo_conditioning.json`,
+figure `outputs/figures/10_context_conditioning.png`.
+
+**Base model:** predicts minor-damage / moderate on all seven variants. It parrots
+event-appropriate words in the evidence prose (say "flood" and it mentions water),
+but the grade and priority never move. Context-blind where it counts.
+
+**Tuned model — the assessment tracks the text:**
+
+- *Event type → evidence clause* (the conditioning we built): hurricane gives
+  "debris aligned along the prevailing wind direction", flood gives "standing
+  water surrounding the structure", wildfire gives "charring on adjacent parcels",
+  earthquake gives "adjacent structures showing comparable collapse". Same pixels.
+- *wildfire → no-damage.* Told it is a wildfire, the model reasons that the
+  structure shows no charring and downgrades. A coherent conditioning behaviour.
+- *days-since → priority* (the rule we built): days=3 gives moderate, larger days
+  give critical.
+
+**The honest finding — the demo exposes its own seams.** Two of them:
+
+1. The base model already adapts its evidence *prose* to the stated event, so
+   "the evidence text changed" is not by itself proof of learned conditioning. The
+   real, classifier-impossible tell is that the tuned model's **grade and priority**
+   move with context while the base model's never do.
+2. Varying days-since shifts not just the priority but the **damage grade**
+   (minor at 3 days, major at 45 and 200). Days cannot change a grade on identical
+   pixels. This is a **spurious coupling** the model absorbed from the templated,
+   rule-based targets — a fingerprint of conditioning that was trained in rather
+   than reasoned. It is exactly the limitation the writeup should show, not hide:
+   the conditioning is real and demonstrable, and it is not grounded reasoning.
+
+This is a single example, so the specific shifts are illustrative, not measured.
+The qualitative contrast (base flat, tuned responsive) is robust; the days→grade
+coupling is a flagged observation worth a controlled follow-up.

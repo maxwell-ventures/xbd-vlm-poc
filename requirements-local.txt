@@ -1,0 +1,11 @@
+# Local figures + the context-conditioning demo (Apple silicon).
+# Charts/composites need only matplotlib+pillow; the demo also runs a 3B model.
+matplotlib>=3.8
+pillow>=10.0
+# demo inference (heavy; MPS/CPU):
+torch>=2.2
+transformers==4.51.3
+tokenizers>=0.21,<0.22
+peft>=0.14,<0.16
+accelerate>=1.0
+qwen-vl-utils
