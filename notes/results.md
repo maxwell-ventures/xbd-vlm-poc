@@ -229,8 +229,67 @@ This is a more useful result than a clean win: a prediction partly confirmed,
 partly wrong on the case it was most sure of, plus an unexpected regression to
 explain.
 
-## Run 3 — LoRA, 7B (planned)
+## Run 3 — the 7B arm, and the full 2×3 grid
 
-*Isolates model capacity: change only the base model (3B → 7B), holding the data
-condition fixed at the best 3B run. Tests whether raw capacity does what the
-before-image could not, especially on the stuck minor/major boundary.*
+The 7B arm mirrors the 3B arm exactly: zero-shot baseline, LoRA post-only, LoRA
+pre+post, same config, same test buildings. `Qwen2.5-VL-7B-Instruct`, bf16 on an
+A40, run overnight as one chain (~10 h). Adapters in `outputs/adapters/*_7b`,
+template fingerprint matches the 3B runs.
+
+### The headline grid (QWK)
+
+```
+              zero-shot    tuned post    tuned pre+post
+   3B            0.009         0.546          0.570
+   7B            0.460         0.556          0.604
+```
+
+### macro-F1 (same cells)
+
+```
+              zero-shot    tuned post    tuned pre+post
+   3B            0.109         0.503          0.528
+   7B            0.295         0.503          0.503
+```
+
+### Three findings
+
+**1. Capacity transforms the zero-shot floor. This is the biggest single effect
+in the grid.** The 3B base is a degenerate constant predictor (QWK 0.009). The 7B
+base already grades, zero-shot, at 0.460 — nearly the level the 3B model reaches
+only *after* fine-tuning (0.546). Its zero-shot destroyed recall is 0.806. So most
+of the celebrated 3B fine-tuning delta (+0.537) was a small model catching up to
+where the large model already sat out of the box.
+
+**2. Fine-tuning is the great equalizer, on post-only.** 3B tuned post (0.546) and
+7B tuned post (0.556) are effectively tied. If you are going to fine-tune anyway,
+the capacity advantage on the single-image task nearly vanishes. This is the first
+of the three scenarios laid out when we decided to measure a 7B baseline: capacity
+lifts the base, adaptation closes the gap.
+
+**3. But capacity and information compound at the top.** The best cell is 7B +
+pre+post (0.604), clearly above every other. And the before-image helped 7B *more*
+than it helped 3B (7B +0.048, 3B +0.024): the more capable model exploits the extra
+input better. So "capacity or information?" has no single winner. The best result
+needs both, and they are synergistic rather than substitutable.
+
+### The honest nuance
+
+On macro-F1 the four tuned cells are all ~0.50, essentially tied. 7B's QWK edge
+therefore comes from getting the ordinal *distances* right (fewer far-off errors),
+not from better per-class balance. The win is ordinal calibration, not solving the
+hard classes.
+
+### The through-line failure: nothing fixed minor/major
+
+Across every tuned run — 3B post, 3B pre+post, 7B post, 7B pre+post — minor-damage
+recall stays poor and collapses into major-damage. At 7B pre+post it is 0.155, the
+worst of all. Three separate levers were pulled at it: fine-tuning, the before-image,
+and doubling model capacity. None moved it. The minor/major boundary is genuinely
+hard from overhead imagery, mirroring the human-annotator disagreement the brief
+predicted. A clean, honest negative result.
+
+### Cost
+
+Whole project: ~$8.33 of GPU (23.8 h on one A40, ephemeral, no volume). Pod
+terminated after pulling all artifacts.

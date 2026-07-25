@@ -26,3 +26,9 @@ __pycache__/
 venv/
 .DS_Store
 .ipynb_checkpoints/
+
+# Draft writeup — kept local until the structure is yours and it is fleshed out
+WRITEUP.md
+
+# Personal interview-prep notes, kept local
+notes/interview-prep-*.md

@@ -1,0 +1,79 @@
+{
+  "name": "base_post_7b",
+  "n_total": 1593,
+  "n_parsed": 1593,
+  "unparseable_rate": 0.0,
+  "parse_failure_reasons": {},
+  "accuracy_parsed": 0.4067796610169492,
+  "accuracy_all": 0.4067796610169492,
+  "adjacent_error_rate": 0.4500941619585687,
+  "distant_error_rate": 0.1431261770244821,
+  "mae_ordinal": 0.7809165097300691,
+  "macro_f1": 0.2950503761803636,
+  "qwk": 0.45989664506603223,
+  "per_class": {
+    "no-damage": {
+      "precision": 0.5333333333333333,
+      "recall": 0.020100502512562814,
+      "f1": 0.0387409200968523,
+      "support": 398
+    },
+    "minor-damage": {
+      "precision": 0.3315450643776824,
+      "recall": 0.7744360902255639,
+      "f1": 0.46431254695717505,
+      "support": 399
+    },
+    "major-damage": {
+      "precision": 0.6111111111111112,
+      "recall": 0.02756892230576441,
+      "f1": 0.052757793764988,
+      "support": 399
+    },
+    "destroyed": {
+      "precision": 0.5095541401273885,
+      "recall": 0.8060453400503779,
+      "f1": 0.624390243902439,
+      "support": 397
+    }
+  },
+  "confusion_matrix": [
+    [
+      8,
+      321,
+      0,
+      69
+    ],
+    [
+      3,
+      309,
+      4,
+      83
+    ],
+    [
+      2,
+      230,
+      11,
+      156
+    ],
+    [
+      2,
+      72,
+      3,
+      320
+    ]
+  ],
+  "confusion_labels": [
+    "no-damage",
+    "minor-damage",
+    "major-damage",
+    "destroyed"
+  ],
+  "priority_accuracy": 0.48901443816698054,
+  "priority_labels": [
+    "none",
+    "moderate",
+    "high",
+    "critical"
+  ]
+}
