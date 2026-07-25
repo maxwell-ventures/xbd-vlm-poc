@@ -65,6 +65,7 @@ perfect format compliance. Full numbers and the confusion matrix:
 | [notes/architecture.md](notes/architecture.md) | the pipeline stage by stage, with diagrams: how a polygon becomes a training example, why the split is grouped by event, what each metric catches |
 | [notes/decisions.md](notes/decisions.md) | every non-obvious choice and its cost, in prose — the file to reread before explaining the project |
 | [notes/results.md](notes/results.md) | measured numbers, starting with the zero-shot baseline |
+| [notes/benchmark-context.md](notes/benchmark-context.md) | the xView2 competition: SOTA scores, and why ours are not directly comparable |
 | [notes/plan.md](notes/plan.md) | phased sequence and the things to be able to explain cold |
 | [notes/dataset.md](notes/dataset.md) | xBD provenance, licence reasoning, archive hashes |
 | [notes/pod-setup.md](notes/pod-setup.md) | the rented-GPU workflow and cost sanity check |
