@@ -333,3 +333,54 @@ but the grade and priority never move. Context-blind where it counts.
 This is a single example, so the specific shifts are illustrative, not measured.
 The qualitative contrast (base flat, tuned responsive) is robust; the days→grade
 coupling is a flagged observation worth a controlled follow-up.
+
+### The demo is circular — and the measurement that isn't
+
+The demo has a fatal flaw as evidence, worth stating bluntly: it cannot separate
+the model *using* context from the model *parroting* context. Feed it "flood" and
+it emits the memorised flood clause regardless of pixels. "Give the model wrong
+information and it predicts wrong information" is trivially true and proves
+nothing. Our templated targets *guaranteed* this: the only thing the model could
+learn was event-word → canned-clause, never grounding.
+
+The non-circular question is whether the **correct** context makes grading
+**better** than no context. We have the data for it: 15% of examples carry event
+type masked to "unknown." Splitting the tuned test predictions on that flag:
+
+| model | correct context (QWK) | masked (QWK) | gap |
+|---|---|---|---|
+| 3B post | 0.549 | 0.535 | +0.014 |
+| 3B pre+post | 0.589 | 0.490 | +0.099 |
+| 7B post | 0.588 | 0.399 | +0.189 |
+| 7B pre+post | 0.631 | 0.477 | +0.154 |
+
+Correct context helps grading in every run, and the effect is large at 7B. This
+is a real result and it is not circular: identical images, the only change is
+whether the true event type was supplied.
+
+**But it is confounded, and we have caught the confound in the act.** The
+improvement has two possible sources this split cannot separate:
+
+1. *Disambiguation (good):* context as a prior that resolves genuinely ambiguous
+   pixels.
+2. *Base-rate shortcut (bad):* the model learned P(grade | event) from the
+   training mix and uses the event word as a cheat sheet, independent of pixels.
+
+The days→grade coupling in the demo above is direct evidence that at least some of
+the context-dependence is the shortcut kind. So the +0.19 at 7B is part real help,
+part a more capable model exploiting a spurious correlation, ratio unknown.
+
+### Named follow-up: disambiguation vs shortcut
+
+One controlled run separates the two. Feed *wrong but plausible* context and
+measure whether it hurts, restricted to genuinely ambiguous chips:
+
+- If correct context helps **and** wrong context hurts **specifically on the
+  ambiguous cases**, that is disambiguation — the valuable, classifier-impossible
+  behaviour.
+- If wrong context flips confident, correct calls, that is the shortcut.
+
+Until that run exists, the honest claim is narrow: the tuned model incorporates
+prompt context into its grade (a classifier cannot), correct context improves
+grading on aggregate, and an unknown share of that improvement is a spurious
+base-rate shortcut rather than grounded reasoning.
